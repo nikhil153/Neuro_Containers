@@ -70,7 +70,7 @@ master_list_file = args.master_list
 
 # create subject specific lists from a master list
 working_dir = os.path.dirname(master_list_file)
-subject_list_dir = os.path.join(working_dir,'sub_lists')
+subject_list_dir = os.path.join(working_dir,'subject_dirs')
 if not os.path.exists(subject_list_dir):
     os.mkdir(subject_list_dir)
 sub_list = create_subject_lists(master_list_file,subject_list_dir)

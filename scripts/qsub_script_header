@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+#$ -cwd
+#$ -o output/out.txt
+#$ -e output/err.txt
+#$ -m e

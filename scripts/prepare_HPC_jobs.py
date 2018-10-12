@@ -51,7 +51,7 @@ def create_Qjob_scripts(q_script_header,subject_list_dir,sub_list):
     for subx in sub_list:
         subx_script = os.path.join(subject_list_dir, subx, q_script_header)
         subject_Qjob_list.append(subx_script)
-        copyfile(os.path.join(os.path.dirname(subject_list_dir),q_script_header), subx_script)
+        copyfile(q_script_header, subx_script)
         subx_cmd = 'singularity exec --pwd /home/nistmni -B /data/ipl/scratch03/nikhil/containers/test_data:/home/nistmni/data /data/ipl/scratch03/nikhil/containers/minc-tools-docker-v2.simg data/{}/{}/run_preproc.sh\n'.format(subject_list_dir_basename, subx) 
         with open(subx_script, "a") as myfile:
             myfile.write(subx_cmd)

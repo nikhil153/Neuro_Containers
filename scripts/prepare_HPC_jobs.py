@@ -7,9 +7,8 @@ from shutil import copyfile
 def create_subject_lists(f,subject_list_dir):
     master_df = pd.read_csv(f,sep=',',header=None)
     other_cols = []
-    for i in range(len(master_df)-1):
+    for i in range(len(master_df.columns)-2):
         other_cols.append('cols_{}'.format(i+2))
-
     master_df.columns = ['subject','tp'] + other_cols
     gb = master_df.groupby('subject')    
 
@@ -24,7 +23,6 @@ def create_subject_lists(f,subject_list_dir):
             gb.get_group(x).to_csv(subx_file, header=False, index=False)
 
         print('subject specific lists created at: {}'.format(subject_list_dir))
-        file_list_check = True
     except:
         print('Error creating files. Check permissions.')
 
@@ -32,28 +30,32 @@ def create_subject_lists(f,subject_list_dir):
 
 def create_pipeline_scripts(subx_list_dir,sub_list,model_dir,model_name,beast_dir):
     subject_pipeline_list = []
+    subject_list_dir_basename = os.path.basename(subject_list_dir)
     for subx in sub_list:
         subx_script = os.path.join(subject_list_dir, subx, 'run_preproc.sh')
         subject_pipeline_list.append(subx_script)
-        subx_list = 'data/{}/subject.list'.format(subx)
-        subx_out_dir = 'data/{}/proc_output'.format(subx)
-        pipeline_cmd = 'python -m scoop nist_mni_pipelines/iplLongitudinalPipeline.py -l {} -o {} -L -D --model-dir={} --model-name={} --beast-dir={}'.format(subx_list,subx_out_dir,model_dir,model_name,beast_dir)
+        subx_list = 'data/{}/{}/subject.list'.format(subject_list_dir_basename,subx)
+        subx_out_dir = 'data/{}/{}/proc_output'.format(subject_list_dir_basename,subx)
+        env_cmd ='#!/bin/bash\nsource /opt/minc/1.9.16/minc-toolkit-config.sh\n'
+	pipeline_cmd = 'python -m scoop nist_mni_pipelines/iplLongitudinalPipeline.py -l {} -o {} -L -D --model-dir={} --model-name={} --beast-dir={}\n'.format(subx_list,subx_out_dir,model_dir,model_name,beast_dir)
         with open(subx_script, "w") as myfile:
+	    myfile.write(env_cmd)
             myfile.write(pipeline_cmd)
-            
+        os.chmod(subx_script, 0o755)
     print('created {} pipeline run scripts at {}'.format(len(sub_list),subject_list_dir))
     return subject_pipeline_list
 
 def create_Qjob_scripts(q_script_header,subject_list_dir,sub_list):
     subject_Qjob_list = []
+    subject_list_dir_basename = os.path.basename(subject_list_dir)
     for subx in sub_list:
         subx_script = os.path.join(subject_list_dir, subx, q_script_header)
         subject_Qjob_list.append(subx_script)
         copyfile(os.path.join(os.path.dirname(subject_list_dir),q_script_header), subx_script)
-        subx_cmd = 'singularity exec --pwd /home/nistmni -B /data/ipl/scratch03/nikhil/containers/test_data:/home/nistmni/data /data/ipl/scratch03/nikhil/containers/minc-tools-docker-v2.simg data/{}/run_preproc.sh'.format(subx) 
+        subx_cmd = 'singularity exec --pwd /home/nistmni -B /data/ipl/scratch03/nikhil/containers/test_data:/home/nistmni/data /data/ipl/scratch03/nikhil/containers/minc-tools-docker-v2.simg data/{}/{}/run_preproc.sh\n'.format(subject_list_dir_basename, subx) 
         with open(subx_script, "a") as myfile:
             myfile.write(subx_cmd)
-
+	os.chmod(subx_script, 0o755)
     print('created {} job scripts at {}'.format(len(sub_list),subject_list_dir))
     return subject_Qjob_list
 
@@ -80,7 +82,7 @@ beast_dir = '/opt/minc/share/beast-library-1.1'
 subject_pipeline_list = create_pipeline_scripts(subject_list_dir,sub_list,model_dir,model_name,beast_dir)
 
 # create subject specific job submission scripts
-subject_Qjob_list = create_Qjob_scripts('test_q', subject_list_dir, sub_list)
+subject_Qjob_list = create_Qjob_scripts('qsub_script_header', subject_list_dir, sub_list)
 
 #TODO
 # Use Dockerfile entrypoint to source env:

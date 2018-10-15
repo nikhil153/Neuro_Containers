@@ -40,7 +40,7 @@ def create_pipeline_scripts(subx_list_dir,sub_list,model_dir,model_name,beast_di
         subx_list_file = 'data/{}/{}/subject.list'.format(subject_list_dir_basename,subx)
         subx_out_dir = 'data/{}/{}/proc_output'.format(subject_list_dir_basename,subx)
         env_cmd ='#!/bin/bash\nsource {}\n'.format(MINC_ENV)
-	    pipeline_cmd = 'python -m scoop nist_mni_pipelines/iplLongitudinalPipeline.py -l {} -o {} -L -D \
+	pipeline_cmd = 'python -m scoop nist_mni_pipelines/iplLongitudinalPipeline.py -l {} -o {} -L -D \
         --model-dir={} --model-name={} --beast-dir={}\n'.format(subx_list_file,subx_out_dir,model_dir,model_name,beast_dir)
         with open(subx_script, "w") as myfile:
 	    myfile.write(env_cmd)
@@ -79,7 +79,8 @@ def submit_HCP_jobs(job_list):
         msg = 'success'
     except:
         msg = 'job submission failed'
-## 
+    
+    return q 
 
 
 # argparse

@@ -33,14 +33,14 @@ def create_pipeline_scripts(subx_list_dir,sub_list,model_dir,model_name,beast_di
     # This is tied to minc-toolkit version that's baked into the container
     MINC_ENV = '/opt/minc/1.9.16/minc-toolkit-config.sh' 
     MINC_PIPELINE = 'nist_mni_pipelines/iplLongitudinalPipeline.py'
-
+    CONTAINER_DATA_DIR = '/home/nistmni/data'
     subject_pipeline_list = []
     subject_list_dir_basename = os.path.basename(subject_list_dir)
     for subx in sub_list:
         subx_script = os.path.join(subject_list_dir, subx, 'run_preproc.sh')
         subject_pipeline_list.append(subx_script)
-        subx_list_file = 'data/{}/{}/subject.list'.format(subject_list_dir_basename,subx)
-        subx_out_dir = 'data/{}/{}/proc_output'.format(subject_list_dir_basename,subx)
+        subx_list_file = '{}/{}/{}/subject.list'.format(CONTAINER_DATA_DIR,subject_list_dir_basename,subx)
+        subx_out_dir = '{}/{}/{}/proc_output'.format(CONTAINER_DATA_DIR,subject_list_dir_basename,subx)
         env_cmd ='#!/bin/bash\nsource {}\n'.format(MINC_ENV)
         pipeline_cmd = 'python -m scoop {} -l {} -o {} -L -D --model-dir={} --model-name={} --beast-dir={}\n'.format(MINC_PIPELINE,subx_list_file,subx_out_dir,model_dir,model_name,beast_dir)
         with open(subx_script, "w") as myfile:
@@ -50,48 +50,52 @@ def create_pipeline_scripts(subx_list_dir,sub_list,model_dir,model_name,beast_di
     print('created {} pipeline run scripts at {}'.format(len(sub_list),subject_list_dir))
     return subject_pipeline_list
 
-def create_Qjob_scripts(q_script_header,subject_list_dir,sub_list):
-    HOST_MOUNT_DIR = '/data/ipl/scratch03/nikhil/containers/test_data'
-    S_CONTAINER = 'data/ipl/scratch03/nikhil/containers/minc-tools-docker-v2.simg'
-    
+def create_Qjob_scripts(q_script_header,subject_list_dir,sub_list,mount_dir):
+    S_CONTAINER = '/data/ipl/scratch03/nikhil/containers/minc-tools-docker-v2.simg'
+    CONTAINER_DATA_DIR = '/home/nistmni/data'
+
     subject_Qjob_list = []
     subject_list_dir_basename = os.path.basename(subject_list_dir)
     for subx in sub_list:
         subx_script = os.path.join(subject_list_dir, subx, q_script_header)
         subject_Qjob_list.append(subx_script)
         copyfile(q_script_header, subx_script)
-        subx_cmd = 'singularity exec --pwd /home/nistmni -B {}:/home/nistmni/data {} data/{}/{}/run_preproc.sh\n'.format(HOST_MOUNT_DIR,S_CONTAINER,subject_list_dir_basename,subx) 
+        subx_cmd = 'singularity exec --pwd /home/nistmni -B {}:{} {} {}/{}/{}/run_preproc.sh\n'.format(mount_dir,CONTAINER_DATA_DIR,S_CONTAINER,CONTAINER_DATA_DIR,subject_list_dir_basename,subx) 
         with open(subx_script, "a") as myfile:
             myfile.write(subx_cmd)
 	os.chmod(subx_script, 0o755)
     print('created {} job scripts at {}'.format(len(sub_list),subject_list_dir))
     return subject_Qjob_list
 
-def submit_HCP_jobs(subject_list_dir,sub_list):
+def submit_HCP_jobs(subject_Qjob_list):
     """ submits HPC jobs on BIC cluster
     """
     print('Submitting jobs to the queue...')
+    q_status = ''
     msg = ''
     subject_list_dir_basename = os.path.basename(subject_list_dir)
     
     try:    
-        for subx in sub_list:
-            qsub_script = 'data/{}/{}/qsub_script_header'.format(subject_list_dir_basename,subx)
-            qsub_cmd = 'qsub -j y -cwd -V -l h_vmem=10G -o out.log {}'.format(qsub_script)
+        #for subx in sub_list:
+        for job in subject_Qjob_list: 
+            #qsub_script = 'data/{}/{}/qsub_script_header'.format(subject_list_dir_basename,subx)
+            qsub_cmd = ["qsub", "-j", "y", "-cwd" ,"-V", "-l", "h_vmem=10G", "-o", "out.log {}".format(job)]
+ 	    print(qsub_cmd)
             q_status = subprocess.check_output(qsub_cmd, shell=True)
             time.sleep(1) 
 
-        msg = 'success'
+        msg = 'successfully submitted jobs'
     except:
         msg = 'job submission failed'
     
-    return q 
+    return q_status, msg 
 
 
 # argparse
 parser = argparse.ArgumentParser(description = 'Code for creating subject-specifc MR scan (timepoints) jobs for HPC')
 parser.add_argument('--master_list', required=True, help='List of all subjects. \
 Note that the path needs to be either relative from the mounted directory or absolute within the container.')
+parser.add_argument('--mount_dir', required=True, help='Path to the host data dir to be mounted on the container')
 parser.add_argument('--model_dir', required=True, help='Directory for anatomical models, e.g. icbm152. \
 Note that the path needs to be either relative from the mounted directory or absolute within the container.')
 parser.add_argument('--model_name', required=True, help='Name of the model, e.g. mni_icbm152_t1_tal_nlin_sym_09c')
@@ -103,6 +107,7 @@ args = parser.parse_args()
 
 # req params    
 master_list_file = args.master_list
+mount_dir = args.mount_dir
 model_dir = args.model_dir #'/opt/minc/share/icbm152_model_09c'
 model_name = args.model_name #'mni_icbm152_t1_tal_nlin_sym_09c'
 beast_dir = args.beast_dir #'/opt/minc/share/beast-library-1.1'
@@ -119,9 +124,9 @@ sub_list = create_subject_lists(master_list_file,subject_list_dir)
 subject_pipeline_list = create_pipeline_scripts(subject_list_dir,sub_list,model_dir,model_name,beast_dir)
 
 # create subject specific job submission scripts
-subject_Qjob_list = create_Qjob_scripts('qsub_script_header', subject_list_dir, sub_list)
-print(subject_Qjob_list)
+subject_Qjob_list = create_Qjob_scripts('qsub_script_header', subject_list_dir, sub_list, mount_dir)
 
-if submit_jobs:
-    q = submit_HCP_jobs(subject_list_dir, sub_list)
+if submit_jobs=='BIC':
+    q, msg = submit_HCP_jobs(subject_Qjob_list)
     print(q)
+    print(msg)

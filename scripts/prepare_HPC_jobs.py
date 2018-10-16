@@ -81,7 +81,8 @@ def submit_HCP_jobs(subject_Qjob_list):
             #qsub_script = 'data/{}/{}/qsub_script_header'.format(subject_list_dir_basename,subx)
             qsub_cmd = ["qsub", "-j", "y", "-cwd" ,"-V", "-l", "h_vmem=10G", "-o", "out.log {}".format(job)]
  	    print(qsub_cmd)
-            q_status = subprocess.check_output(qsub_cmd, shell=True)
+	    #subprocess.Popen(qsub_cmd,
+            q_status = subprocess.check_output(qsub_cmd, shell=False)
             time.sleep(1) 
 
         msg = 'successfully submitted jobs'

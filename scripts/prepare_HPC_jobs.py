@@ -67,28 +67,13 @@ def create_Qjob_scripts(q_script_header,subject_list_dir,sub_list,mount_dir):
     print('created {} job scripts at {}'.format(len(sub_list),subject_list_dir))
     return subject_Qjob_list
 
-def submit_HCP_jobs(subject_Qjob_list):
-    """ submits HPC jobs on BIC cluster
+def create_qsub_list(subject_Qjob_list,qsub_list_file):
+    """ Single list of HPC jobs on BIC cluster
     """
-    print('Submitting jobs to the queue...')
-    q_status = ''
-    msg = ''
-    subject_list_dir_basename = os.path.basename(subject_list_dir)
-    
-    try:    
-        #for subx in sub_list:
+    with open(qsub_list_file, "a") as myfile:
         for job in subject_Qjob_list: 
-            #qsub_script = 'data/{}/{}/qsub_script_header'.format(subject_list_dir_basename,subx)
-            qsub_cmd = ["qsub", "-j", "y", "-cwd" ,"-V", "-l", "h_vmem=10G", "-o", "out.log {}".format(job)]
- 	    print(qsub_cmd)
-            q_status = subprocess.check_output(qsub_cmd, shell=True)
-            time.sleep(1) 
-
-        msg = 'successfully submitted jobs'
-    except:
-        msg = 'job submission failed'
-    
-    return q_status, msg 
+            qsub_cmd = 'qsub -j y -cwd -V -l h_vmem=10G -o out.log {}'.format(job)
+            myfile.write(qsub_cmd) 
 
 
 # argparse
@@ -101,7 +86,6 @@ Note that the path needs to be either relative from the mounted directory or abs
 parser.add_argument('--model_name', required=True, help='Name of the model, e.g. mni_icbm152_t1_tal_nlin_sym_09c')
 parser.add_argument('--beast_dir', required=True, help='Directory for BEAST templates. \
 Note that the path needs to be either relative from the mounted directory or absolute within the container.')
-parser.add_argument('--submit_jobs', required=True, help='If true, submit jobs to the HPC. If false, only creates the job list.')
 
 args = parser.parse_args()
 
@@ -113,20 +97,24 @@ model_name = args.model_name #'mni_icbm152_t1_tal_nlin_sym_09c'
 beast_dir = args.beast_dir #'/opt/minc/share/beast-library-1.1'
 submit_jobs = args.submit_jobs
 
+print('This script prepares MR dataset for container based preprocessing. The script will create:  \n1) subject-specific directories comprsiing all time points from the master_list \n2) create ipl pipeline script for each of these directories \n3) create qsub command for each of this directories.')
+print('')
+
 # create subject specific lists from a master list
+print('Creating subject specific directories...')
 working_dir = os.path.dirname(master_list_file)
 subject_list_dir = os.path.join(working_dir,'subject_dirs')
+qsub_list_file = os.path.join(working_dir, 'all_qsub_jobs.sh')
 if not os.path.exists(subject_list_dir):
     os.mkdir(subject_list_dir)
 sub_list = create_subject_lists(master_list_file,subject_list_dir)
 
 # creare subject specific pipleline script
+print('Creating subject specific pipeline script...')
 subject_pipeline_list = create_pipeline_scripts(subject_list_dir,sub_list,model_dir,model_name,beast_dir)
 
 # create subject specific job submission scripts
+print('Creating subject specific qsub command...')
 subject_Qjob_list = create_Qjob_scripts('qsub_script_header', subject_list_dir, sub_list, mount_dir)
-
-if submit_jobs=='BIC':
-    q, msg = submit_HCP_jobs(subject_Qjob_list)
-    print(q)
-    print(msg)
+create_qsub_list(subject_Qjob_list,qsub_list_file)
+print('To submit jobs to the BIC cluster, run this script: {}'.format(qsub_list_file))

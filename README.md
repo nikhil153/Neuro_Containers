@@ -1,19 +1,19 @@
-## Neuro_Containers
-# Description
+# Neuro_Containers
+## Description
 - Containers for preprocessing pipelines 
 
-# Containers
+## Containers
 - Docker: general purpose containerized snapshots of 1) Minc-tools 2) preproc pipeline (e.g. ipl_longitudinal) 3) other packages (e.g. pyminc) 
 - Singularity: Converted from Docker image to run on HPC cluster at BIC (not uploaded on here) 
 
-# Workflow 
+## Workflow 
 - see preproc_pipeline* images for implementation details
 
-# Directories
+## Directories
  - docker: Dockerfiles 
  - scripts: code for preparing HPC job submission with new workflow
 
-# Usage requirements
+## Usage requirements
  - host directory comprising all images 
  - list of all subjects-scans in following format (subject.list): 
  
@@ -24,11 +24,11 @@
  MaryAnn,m06,native/MaryAnn_m00_t1w,,,Female,67.5
  ```
  
- # Useful paths
+ ## Useful paths
  - container home: /home/nistmni
  - container data-mount: /home/nistmni/data
  
- # Usage 
+ ## Usage 
  - run the "scripts/prepare_HPC_jobs.py". See sample command below: 
  ```
  python prepare_HPC_jobs.py --master_list /data/ipl/scratch03/nikhil/containers/3subjects/subject.list \

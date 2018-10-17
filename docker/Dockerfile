@@ -70,4 +70,6 @@ WORKDIR /home/nistmni
 COPY . /home/nistmni
 
 # define default run script 
-CMD ["./run_preproc.sh"]
+#ENTRYPOINT ["/bin/bash", "-c", "source /opt/minc/1.9.16/minc-toolkit-config.sh"]
+CMD ["/bin/bash", "-c", "source /opt/minc/1.9.16/minc-toolkit-config.sh"]
+#CMD ["./run_preproc.sh"]

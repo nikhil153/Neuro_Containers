@@ -38,7 +38,7 @@ def create_subject_lists(f,subject_list_dir):
 
     return sub_list
 
-def create_pipeline_scripts(subx_list_dir,sub_list,model_dir,model_name,beast_dir):
+def create_pipeline_scripts(subject_list_dir,sub_list,model_dir,model_name,beast_dir):
     subject_pipeline_list = []
     subject_list_dir_basename = os.path.basename(subject_list_dir)
     for subx in sub_list:
@@ -63,19 +63,24 @@ def create_Qjob_scripts(q_script_header,subject_list_dir,sub_list,mount_dir):
         subject_Qjob_list.append(subx_script)
         copyfile(q_script_header, subx_script)
         subx_cmd = 'singularity exec --pwd /home/nistmni -B {}:{} {} {}/{}/{}/run_preproc.sh\n'.format(mount_dir,CONTAINER_DATA_DIR,S_CONTAINER,CONTAINER_DATA_DIR,subject_list_dir_basename,subx) 
-        with open(subx_script, "a") as myfile:
-            myfile.write(subx_cmd)
-	os.chmod(subx_script, 0o755)
+
+    with open(subx_script, "a") as myfile:
+        myfile.write(subx_cmd)
+ 
+    os.chmod(subx_script, 0o755)
     print('created {} job scripts at {}'.format(len(sub_list),subject_list_dir))
     return subject_Qjob_list
 
 def create_qsub_list(subject_Qjob_list,qsub_list_file):
     """ Single list of HPC jobs on BIC cluster
     """
-    with open(qsub_list_file, "a") as myfile:
-        for job in subject_Qjob_list: 
-            qsub_cmd = 'qsub -j y -cwd -V -l h_vmem=10G -o out.log {}\n'.format(job)
-            myfile.write(qsub_cmd) 
+    qsub_cmd_list = []
+    for job in subject_Qjob_list: 
+        qsub_cmd = 'qsub -j y -cwd -V -l h_vmem=10G -o out.log {}\n'.format(job)
+        qsub_cmd_list.append(qsub_cmd)
+
+    with open(qsub_list_file, "w") as myfile:
+        myfile.writelines(qsub_cmd_list) 
 
 
 def main():
@@ -100,9 +105,9 @@ def main():
     beast_dir = args.beast_dir #'/opt/minc/share/beast-library-1.1'
 
     print('')
-    print('This script prepares MR dataset for container based preprocessing. The script will create:  \n1) subject-specific directories comprising all timepoints from the master_list \n2) create ipl pipeline script for each of these directories \n3) create qsub command for each of this directories.')
-    print('Using minc-toolkit version {}'.format(MINC_TOOLKIT_VERSION))
+    print('This script prepares MR dataset for container based preprocessing. The script will create:  \n1) subject-specific directories, each comprising all timepoints per subject from the master_list \n2) ipl pipeline script for each of these directories \n3) qsub command for each of this directories.')
     print('')
+    print('Using minc-toolkit version {}'.format(MINC_TOOLKIT_VERSION))
 
     # create subject specific lists from a master list
     print('\nCreating subject specific directories...')

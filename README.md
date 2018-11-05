@@ -18,10 +18,11 @@
  - list of all subjects-scans in following format (subject.list): 
  
  ```
- JohnDoe,m00,native/JohnDoe_m00_t1w.mnc,,,Male,58
- JohnDoe,m12,native/JohnDoe_m12_t1w.mnc,,,Male,59
- MaryAnn,m00,native/MaryAnn_m00_t1w,,,Female,67
- MaryAnn,m06,native/MaryAnn_m00_t1w,,,Female,67.5
+subject04,1,input/subject04_1_t1w.mnc.gz,,,Male,50
+subject04,2,input/subject04_2_t1w.mnc.gz,,,Male,51
+subject04,3,input/subject04_3_t1w.mnc.gz,,,Male,52
+subject05,1,input/subject05_1_t1w.mnc.gz,,,Male,56
+subject05,2,input/subject05_2_t1w.mnc.gz,,,Male,57
  ```
  
  ## Useful paths

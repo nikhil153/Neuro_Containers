@@ -17,9 +17,10 @@ CONTAINER_DATA_DIR = '/home/nistmni/data'
 def create_subject_lists(f,subject_list_dir):
     master_df = pd.read_csv(f,sep=',',header=None)
     other_cols = []
-    for i in range(len(master_df.columns)-2):
-        other_cols.append('cols_{}'.format(i+2))
-    master_df.columns = ['subject','tp'] + other_cols
+    for i in range(len(master_df.columns)-3):
+        other_cols.append('cols_{}'.format(i+3))
+    master_df.columns = ['subject','tp','path'] + other_cols
+    master_df['path'] = CONTAINER_DATA_DIR + '/' + master_df['path'].astype(str)
     gb = master_df.groupby('subject')    
 
     sub_list = []

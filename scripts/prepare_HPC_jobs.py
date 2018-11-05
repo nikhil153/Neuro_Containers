@@ -65,10 +65,10 @@ def create_Qjob_scripts(q_script_header,subject_list_dir,sub_list,mount_dir):
         copyfile(q_script_header, subx_script)
         subx_cmd = 'singularity exec --pwd /home/nistmni -B {}:{} {} {}/{}/{}/run_preproc.sh\n'.format(mount_dir,CONTAINER_DATA_DIR,S_CONTAINER,CONTAINER_DATA_DIR,subject_list_dir_basename,subx) 
 
-    with open(subx_script, "a") as myfile:
-        myfile.write(subx_cmd)
+        with open(subx_script, "a") as myfile:
+            myfile.write(subx_cmd)
  
-    os.chmod(subx_script, 0o755)
+        os.chmod(subx_script, 0o755)
     print('created {} job scripts at {}'.format(len(sub_list),subject_list_dir))
     return subject_Qjob_list
 
@@ -76,10 +76,12 @@ def create_qsub_list(subject_Qjob_list,qsub_list_file):
     """ Single list of HPC jobs on BIC cluster
     """
     qsub_cmd_list = []
+    sleep_cmd = 'sleep 1\n'
     for job in subject_Qjob_list: 
         qsub_cmd = 'qsub -j y -cwd -V -l h_vmem=10G -o out.log {}\n'.format(job)
         qsub_cmd_list.append(qsub_cmd)
-
+	qsub_cmd_list.append(sleep_cmd)
+	
     with open(qsub_list_file, "w") as myfile:
         myfile.writelines(qsub_cmd_list) 
 
